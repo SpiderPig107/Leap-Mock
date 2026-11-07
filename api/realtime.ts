@@ -114,12 +114,20 @@ function json(status: number, body: unknown, cache: string): Response {
 
 const fallback = () => json(503, { fallback: true }, "no-store");
 
+// Per-instance cache so query-string variants cannot bypass the CDN and burn NTA quota.
+const CACHE_TTL_MS = 20_000;
+const memo = new Map<string, { at: number; body: RealtimeRes }>();
+export const clearRealtimeCache = () => memo.clear();
+
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const routes = parseRoutes(url.searchParams.get("routes"));
   if (!routes) return json(400, { error: "INVALID_ROUTE" }, "no-store");
   const key = process.env.NTA_KEY;
   if (!key) return fallback();
+  const cacheKey = routes.join(",");
+  const hit = memo.get(cacheKey);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return json(200, hit.body, CACHE_OK);
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), UPSTREAM_TIMEOUT_MS);
@@ -136,6 +144,7 @@ export async function GET(request: Request): Promise<Response> {
       vehicles: mapVehicles(vehicles.value, routes),
       tripDelays: trips.status === "fulfilled" ? mapTripDelays(trips.value, routes) : {},
     };
+    memo.set(cacheKey, { at: Date.now(), body });
     return json(200, body, CACHE_OK);
   } catch (err) {
     // F10: generic body to the client; F6: never log headers or the key.

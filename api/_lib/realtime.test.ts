@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GET, ROUTE_IDS, UPSTREAM_TIMEOUT_MS, parseRoutes } from "../realtime";
+import { GET, ROUTE_IDS, UPSTREAM_TIMEOUT_MS, clearRealtimeCache, parseRoutes } from "../realtime";
 
 const vehiclesFeed = {
   header: { timestamp: "1794060000" },
@@ -48,6 +48,7 @@ function mockUpstream(handler: (url: string, init?: RequestInit) => Promise<Resp
 }
 
 beforeEach(() => {
+  clearRealtimeCache();
   vi.stubEnv("NTA_KEY", "test-key");
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -89,6 +90,14 @@ describe("GET /api/realtime", () => {
     const body = await (await GET(req("?routes=16"))).json();
     expect(body.vehicles.map((v: { route: string }) => v.route)).toEqual(["16"]);
     expect(body.tripDelays).toEqual({});
+  });
+
+  it("serves query-string variants from one cached upstream fetch", async () => {
+    const fetchFn = mockUpstream(async (url) => ok(url.includes("Vehicles") ? vehiclesFeed : tripsFeed));
+    for (const qs of ["?routes=16", "?routes=16&x=1", "?routes=16&x=2"]) {
+      expect((await GET(req(qs))).status).toBe(200);
+    }
+    expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
   it("accepts route lists in any order or case", async () => {
