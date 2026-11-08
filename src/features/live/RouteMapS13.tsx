@@ -1,7 +1,8 @@
 import "leaflet/dist/leaflet.css";
 import "./live.css";
 import type { LatLngBoundsExpression } from "leaflet";
-import { useEffect, useMemo } from "react";
+import { Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from "react-leaflet";
 import { Link, Outlet, useMatch, useNavigate } from "react-router-dom";
 import { CONFIG } from "../../lib/config";
@@ -11,6 +12,8 @@ import { useRouteData } from "./gtfs";
 import { LiveBadge } from "./LiveBadge";
 import { liveSearch, useLiveParams, type LiveContext } from "./liveContext";
 import { LiveToast } from "./LiveToast";
+import { RoutePicker } from "./RoutePicker";
+import { useRouteStore } from "./routeStore";
 import type { Stop } from "./types";
 import { useRealtime } from "./useRealtime";
 
@@ -27,8 +30,11 @@ function FitView({ bounds, focus }: { bounds: LatLngBoundsExpression | null; foc
 
 /** S13 Live route map. Layout for S14 (stop list) and S15 (stop detail) in the sheet below the map. */
 export function RouteMapS13() {
-  const rt = useRealtime();
   const { route, dirIdx } = useLiveParams();
+  const saved = useRouteStore((s) => s.saved);
+  const tabs = useMemo(() => (saved.includes(route) ? saved : [...saved, route]), [saved, route]);
+  const rt = useRealtime(tabs);
+  const [picking, setPicking] = useState(false);
   const routeState = useRouteData(route);
   const navigate = useNavigate();
   const stopMatch = useMatch("/live/stop/:stopId");
@@ -78,20 +84,28 @@ export function RouteMapS13() {
         </MapContainer>
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-2 p-3">
-          <div className="pointer-events-auto flex gap-1.5" role="tablist" aria-label="Route">
-            {CONFIG.routes.map((r) => (
+          <div className="pointer-events-auto flex min-w-0 gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Route">
+            {tabs.map((r) => (
               <Link
                 key={r}
                 to={`/live${liveSearch(r, 0)}`}
                 role="tab"
                 aria-selected={r === route}
-                className={`min-h-[36px] rounded-full px-3.5 py-2 text-sm font-bold shadow-md ${
+                className={`min-h-[36px] shrink-0 rounded-full px-3.5 py-2 text-sm font-bold shadow-md ${
                   r === route ? "bg-brand text-white" : "bg-white text-ink"
                 }`}
               >
                 {r}
               </Link>
             ))}
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              aria-label="Choose routes"
+              className="grid min-h-[36px] w-9 shrink-0 place-items-center rounded-full bg-white text-brand-dark shadow-md"
+            >
+              <Plus size={20} aria-hidden />
+            </button>
           </div>
           <div className="pointer-events-auto">
             <LiveBadge mode={rt.mode} fetchedAt={rt.data?.fetchedAt} onToggle={rt.toggle} />
@@ -101,7 +115,11 @@ export function RouteMapS13() {
         {(!rt.data || vehicles.length === 0) && (
           <div className="absolute inset-x-0 bottom-6 z-[1000] flex justify-center">
             <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-ink-muted shadow">
-              {!rt.data ? "Loading buses…" : "No buses on this route right now."}
+              {!rt.data
+                ? "Loading buses…"
+                : rt.mode === "RECORDED" && !(CONFIG.defaultRoutes as readonly string[]).includes(route)
+                  ? `Recorded demo data only covers ${CONFIG.defaultRoutes.join(", ")}.`
+                  : "No buses on this route right now."}
             </span>
           </div>
         )}
@@ -114,6 +132,15 @@ export function RouteMapS13() {
           <Outlet context={ctx} />
         </div>
       </div>
+      {picking && (
+        <RoutePicker
+          onClose={() => setPicking(false)}
+          onPick={(r) => {
+            setPicking(false);
+            navigate(`/live${liveSearch(r, 0)}`);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 /// <reference types="node" />
-// GET /api/realtime?routes=E1,39A,16 — NTA GTFS-R proxy (Tech Spec 7.2, Security Review F6/F7/F10).
-// Self-contained on purpose: Vercel ESM functions are fragile with relative TS imports.
+// GET /api/realtime?routes=E1,39A,16 — NTA GTFS-R proxy for any Dublin Bus / Go-Ahead Dublin route (Tech Spec 7.2, Security Review F6/F7/F10).
+import { ROUTE_IDS } from "./_lib/routeIds.js";
 
 export type RealtimeVehicle = {
   vehicleId: string;
@@ -19,13 +19,11 @@ export type RealtimeRes = {
   tripDelays: Record<string, { delaySecs: number; stopSeq?: number }>;
 };
 
-/** GTFS route_id → short name. Must match public/gtfs/routes.json (checked by a unit test). */
-export const ROUTE_IDS: Record<string, string> = {
-  "1 E1 a": "E1",
-  "1 39A c a": "39A",
-  "1 16 c a": "16",
-};
+export { ROUTE_IDS };
 export const ALLOWED_ROUTES = Object.values(ROUTE_IDS);
+const ALLOWED = new Set(ALLOWED_ROUTES);
+/** Most routes one request may ask for (the app sends the user's saved routes). */
+export const MAX_ROUTES = 20;
 
 const NTA_BASE = "https://api.nationaltransport.ie/gtfsr/v2";
 export const UPSTREAM_TIMEOUT_MS = 8000;
@@ -35,11 +33,11 @@ const CACHE_STALE = "public, s-maxage=15";
 /** On NTA failure (e.g. 429 rate limit) keep serving the last good LIVE data this long. */
 export const STALE_OK_MS = 300_000;
 
-/** Returns the sorted, deduped route list, or null if any value is not allowlisted. Empty → all routes. */
+/** Returns the sorted, deduped route list, or null if empty, too long or any value is not allowlisted. */
 export function parseRoutes(raw: string | null): string[] | null {
-  if (raw === null || raw.trim() === "") return [...ALLOWED_ROUTES].sort();
+  if (raw === null || raw.trim() === "") return null;
   const parts = raw.split(",").map((s) => s.trim().toUpperCase());
-  if (parts.length > 10 || parts.some((p) => !ALLOWED_ROUTES.includes(p))) return null;
+  if (parts.length > MAX_ROUTES || parts.some((p) => !ALLOWED.has(p))) return null;
   return [...new Set(parts)].sort();
 }
 
@@ -61,14 +59,14 @@ type FeedEntity = {
 };
 type Feed = { header?: { timestamp?: string | number }; entity?: FeedEntity[] };
 
-export function mapVehicles(feed: Feed, routes: string[]): RealtimeVehicle[] {
+export function mapVehicles(feed: Feed, routes: ReadonlySet<string> = ALLOWED): RealtimeVehicle[] {
   const out: RealtimeVehicle[] = [];
   for (const e of feed.entity ?? []) {
     const v = e.vehicle;
     const route = ROUTE_IDS[v?.trip?.route_id ?? ""];
     const lat = v?.position?.latitude;
     const lon = v?.position?.longitude;
-    if (!v || !route || !routes.includes(route) || typeof lat !== "number" || typeof lon !== "number") continue;
+    if (!v || !route || !routes.has(route) || typeof lat !== "number" || typeof lon !== "number") continue;
     out.push({
       vehicleId: String(v.vehicle?.id ?? v.trip?.trip_id ?? "unknown"),
       route,
@@ -82,20 +80,21 @@ export function mapVehicles(feed: Feed, routes: string[]): RealtimeVehicle[] {
   return out;
 }
 
-export function mapTripDelays(feed: Feed, routes: string[]): RealtimeRes["tripDelays"] {
-  const out: RealtimeRes["tripDelays"] = {};
+/** Latest known delay per trip, grouped by route short name, in one pass over the feed. */
+export function mapTripDelays(feed: Feed): Record<string, RealtimeRes["tripDelays"]> {
+  const out: Record<string, RealtimeRes["tripDelays"]> = {};
   for (const e of feed.entity ?? []) {
     const tu = e.trip_update;
     const route = ROUTE_IDS[tu?.trip?.route_id ?? ""];
     const tripId = tu?.trip?.trip_id;
-    if (!tu || !route || !tripId || !routes.includes(route)) continue;
+    if (!tu || !route || !tripId) continue;
     if (tu.trip?.schedule_relationship === "CANCELED") continue;
     const stu = (tu.stop_time_update ?? []).find(
       (s) => typeof s.arrival?.delay === "number" || typeof s.departure?.delay === "number",
     );
     if (!stu) continue;
     const delaySecs = (stu.arrival?.delay ?? stu.departure?.delay) as number;
-    out[tripId] = { delaySecs, ...(typeof stu.stop_sequence === "number" ? { stopSeq: stu.stop_sequence } : {}) };
+    (out[route] ??= {})[tripId] = { delaySecs, ...(typeof stu.stop_sequence === "number" ? { stopSeq: stu.stop_sequence } : {}) };
   }
   return out;
 }
@@ -172,11 +171,11 @@ async function load(key: string): Promise<Snapshot> {
     const res: Snapshot = {
       fetchedAt: now,
       ...(trips.status === "fulfilled"
-        ? { delaysAt: now, delaysByRoute: Object.fromEntries(ALLOWED_ROUTES.map((r) => [r, mapTripDelays(trips.value, [r])])) }
+        ? { delaysAt: now, delaysByRoute: mapTripDelays(trips.value) }
         : keepDelays
           ? { delaysAt: lastGood!.delaysAt, delaysByRoute: lastGood!.delaysByRoute }
           : { delaysAt: now, delaysByRoute: {} }),
-      vehicles: mapVehicles(vehicles.value, ALLOWED_ROUTES),
+      vehicles: mapVehicles(vehicles.value),
     };
     lastGood = res;
     return res;
@@ -186,10 +185,11 @@ async function load(key: string): Promise<Snapshot> {
 }
 
 function forRoutes(snap: Snapshot, routes: string[]): RealtimeRes {
+  const wanted = new Set(routes);
   return {
     source: "LIVE",
     fetchedAt: snap.fetchedAt,
-    vehicles: snap.vehicles.filter((v) => routes.includes(v.route)),
+    vehicles: snap.vehicles.filter((v) => wanted.has(v.route)),
     tripDelays: Object.assign({}, ...routes.map((r) => snap.delaysByRoute[r] ?? {})),
   };
 }

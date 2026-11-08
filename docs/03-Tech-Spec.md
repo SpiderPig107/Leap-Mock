@@ -185,11 +185,11 @@ The BFF validates every field, rejects unknown fields, and maps Apps Script erro
 ## 7. Live bus data
 
 ### 7.1 Static (build time): `scripts/extract_gtfs.py`
-Input: `GTFS_Dublin_Bus.zip`. For each route in CONFIG.routes and each direction:
+Input: `GTFS_Dublin_Bus.zip` and `GTFS_GoAhead.zip`. For every route with at least half its stops in Dublin (157 routes), and each direction:
 - `shape`: one representative polyline (most common `shape_id`), simplified to ~200 points.
 - `stops`: ordered list `{stopId, code, name, lat, lon}`.
 - `timetable`: for the **demo date only** (filtered by `calendar.txt` + `calendar_dates.txt`): per trip `{tripId, startSecs, stopOffsetsSecs[]}`.
-Output: `public/gtfs/{route}.json`, target < 300 KB each. Run it on the demo morning so the trip IDs match the live feed.
+Output: `public/gtfs/{route}.json` (target < 300 KB each), `public/gtfs/index.json` (route list for the Live route picker) and `api/_lib/routeIds.ts` (route_id lookup for the realtime proxy). Run it on the demo morning so the trip IDs match the live feed.
 
 ### 7.2 Realtime: `/api/realtime?routes=E1,39A,16`
 - Calls `Vehicles?format=json` and `TripUpdates?format=json` in parallel. Sends the key header given in the NTA developer portal docs. (Verify the exact header name when the key arrives.)

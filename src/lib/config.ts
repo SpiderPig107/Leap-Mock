@@ -7,7 +7,6 @@ export const CONFIG = {
   amountChipsCents: [500, 1000, 2000, 3000],
   realtimePollMs: 20000,
   apiTimeoutMs: 8000,
-  routes: ["E1", "39A", "16"],
+  /** Routes a new user starts with on the Live tab. RECORDED demo data covers these only. */
+  defaultRoutes: ["E1", "39A", "16"],
 } as const;
-
-export type DemoRoute = (typeof CONFIG.routes)[number];

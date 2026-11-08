@@ -74,7 +74,7 @@ Priority order is fixed: P0 → P1 → P2. Each phase has a hard stop (minutes f
 - *If late, cut:* F6, then F14.
 
 ### P2 — Live bus + fare (hard stop 2:30; built in parallel)
-- **F8 Live map:** route selector (3 Dublin Bus routes), route line, live bus markers, refresh every ~20 s.
+- **F8 Live map:** route selector (3 Dublin Bus routes at the event; since extended to every Dublin Bus and Go-Ahead Ireland route in Dublin, with up to 8 saved routes per user), route line, live bus markers, refresh every ~20 s.
 - **F9 Stop list:** stops for the selected route; tap stop → next 3 arrivals, each tagged "Live" or "Scheduled".
 - **F10 Data source toggle:** LIVE / RECORDED, with badge showing source and last-updated time.
 - **F12 Fare + smart top-up:** stop detail shows the fare (demo value €2.00, configurable) vs. card balance. If balance is below the trigger (OQ3), show inline "Top up €10 with Google Pay". One tap. Balance updates. Map keeps running.
