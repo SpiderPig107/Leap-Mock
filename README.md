@@ -8,7 +8,7 @@ Built together by **Gamaliel** and **Sona** at the **Cognition Builder's Day**, 
 
 ## Demo video
 
-https://github.com/user-attachments/assets/beeee950-334f-4245-a74c-10d100273850
+https://github.com/user-attachments/assets/17837bdf-a65e-4dcc-97da-fd76e5c8cae5
 
 ## The problem
 
