@@ -26,7 +26,7 @@ Leap+ puts top-up and live journeys in one app.
 | **Card** | Add a card by a simulated NFC scan or by entering its number. See the balance and recent transactions. |
 | **Top Up** | Choose an amount (min €5, max balance €150) and pay with **Google Pay** (real Google Pay sheet, TEST mode), **Apple Pay** (simulated), or a saved card. |
 | **Plan** | Search any place in the Republic of Ireland (shops, landmarks, stops). Compare routes by time, changes, and walking. Open a route on a map with stops, walking legs, and live buses. |
-| **Live** | Follow live buses on routes E1, 39A, and 16. Open a stop to see arrivals. If your balance is low, top up from the stop screen (smart top-up). |
+| **Live** | Follow live buses on any Dublin Bus or Go-Ahead Ireland route in Dublin: search, save and reorder up to 8 routes (E1, 39A and 16 by default). Open a stop to see arrivals. If your balance is low, top up from the stop screen (smart top-up). |
 
 ### Demo cards
 

@@ -6,7 +6,6 @@ import type { RealtimeRes } from "./types";
 export type DataMode = "LIVE" | "RECORDED";
 export const FALLBACK_TOAST = "Live data unavailable. Switched to RECORDED.";
 export const LIVE_RETRY_MS = 60_000;
-const ROUTES_PARAM = [...CONFIG.routes].sort().join(",");
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { signal: AbortSignal.timeout(CONFIG.apiTimeoutMs + 2000) });
@@ -19,7 +18,8 @@ async function fetchJson<T>(url: string): Promise<T> {
  * switches to the RECORDED loop with a toast, then LIVE is retried every 60 s and restored silently.
  * `?liveFail=1` forces the LIVE call to fail (demo flag).
  */
-export function useRealtime() {
+export function useRealtime(routes: readonly string[]) {
+  const routesParam = [...new Set(routes)].sort().join(",");
   const liveFail = useMemo(
     () => hasDemoFlag("liveFail") || new URLSearchParams(window.location.search).get("liveFail") === "1",
     [],
@@ -41,7 +41,7 @@ export function useRealtime() {
     const tryLive = async (): Promise<RealtimeRes | null> => {
       if (liveFail) return null;
       try {
-        return await fetchJson<RealtimeRes>(`/api/realtime?routes=${ROUTES_PARAM}`);
+        return await fetchJson<RealtimeRes>(`/api/realtime?routes=${encodeURIComponent(routesParam)}`);
       } catch {
         return null;
       }
@@ -60,6 +60,7 @@ export function useRealtime() {
     };
 
     const tick = async () => {
+      if (!routesParam) return;
       const shouldTryLive = !pinnedRecorded && (current === "LIVE" || Date.now() - lastLiveTry >= LIVE_RETRY_MS);
       if (shouldTryLive) {
         lastLiveTry = Date.now();
@@ -87,7 +88,7 @@ export function useRealtime() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [liveFail, pinnedRecorded, restart]);
+  }, [liveFail, pinnedRecorded, restart, routesParam]);
 
   /** Badge tap: LIVE → RECORDED (pinned); RECORDED → try LIVE now. */
   const toggle = useCallback(() => {

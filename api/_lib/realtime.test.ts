@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GET, ROUTE_IDS, STALE_OK_MS, retryAfterSecs, UPSTREAM_TIMEOUT_MS, clearRealtimeCache, parseRoutes } from "../realtime";
+import { ALLOWED_ROUTES, GET, MAX_ROUTES, STALE_OK_MS, retryAfterSecs, UPSTREAM_TIMEOUT_MS, clearRealtimeCache, parseRoutes } from "../realtime";
 
 const vehiclesFeed = {
   header: { timestamp: "1794060000" },
@@ -39,7 +39,7 @@ const tripsFeed = {
 };
 
 const ok = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
-const req = (qs = "") => new Request(`https://leap.test/api/realtime${qs}`);
+const req = (qs = "?routes=16,39A,E1") => new Request(`https://leap.test/api/realtime${qs}`);
 
 function mockUpstream(handler: (url: string, init?: RequestInit) => Promise<Response>) {
   const fn = vi.fn((input: RequestInfo | URL, init?: RequestInit) => handler(String(input), init));
@@ -60,7 +60,12 @@ afterEach(() => {
 });
 
 describe("parseRoutes (F7 allowlist)", () => {
-  it("defaults to all routes, sorted", () => expect(parseRoutes(null)).toEqual(["16", "39A", "E1"]));
+  it("rejects a missing or empty list", () => {
+    expect(parseRoutes(null)).toBeNull();
+    expect(parseRoutes(" ")).toBeNull();
+  });
+  it("accepts any Dublin Bus or Go-Ahead Dublin route", () => expect(parseRoutes("s4,c1,E1,220")).toEqual(["220", "C1", "E1", "S4"]));
+  it("rejects more than MAX_ROUTES routes", () => expect(parseRoutes(ALLOWED_ROUTES.slice(0, MAX_ROUTES + 1).join(","))).toBeNull());
   it("sorts and dedupes", () => expect(parseRoutes("e1,16,E1")).toEqual(["16", "E1"]));
   it("rejects unknown routes", () => expect(parseRoutes("E1,99X")).toBeNull());
   it("accepts repeated valid routes", () => expect(parseRoutes("E1,E1,E1,16")).toEqual(["16", "E1"]));
@@ -227,8 +232,11 @@ describe("TripUpdates outage", () => {
 });
 
 describe("route lookup", () => {
-  it("matches public/gtfs/routes.json from the extract script", () => {
-    const fromScript = JSON.parse(readFileSync(new URL("../../public/gtfs/routes.json", import.meta.url), "utf8"));
-    expect(ROUTE_IDS).toEqual(fromScript);
+  it("has a route id for every route in public/gtfs/index.json", () => {
+    const index = JSON.parse(readFileSync(new URL("../../public/gtfs/index.json", import.meta.url), "utf8")) as { route: string }[];
+    expect([...ALLOWED_ROUTES].sort()).toEqual(index.map((r) => r.route).sort());
+    expect(index.length).toBeGreaterThan(100);
+    for (const r of ["E1", "39A", "16", "S4", "220"]) expect(ALLOWED_ROUTES).toContain(r);
   });
+  it("leaves out commuter routes mostly outside Dublin", () => expect(ALLOWED_ROUTES).not.toContain("126"));
 });

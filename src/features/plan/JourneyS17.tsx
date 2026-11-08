@@ -4,8 +4,8 @@ import type { LatLngBoundsExpression } from "leaflet";
 import { useEffect, useMemo } from "react";
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { CONFIG } from "../../lib/config";
 import { BusMarker } from "../live/BusMarker";
+import { useRouteIndex } from "../live/gtfs";
 import { LiveBadge } from "../live/LiveBadge";
 import { useRealtime } from "../live/useRealtime";
 import { LegChips } from "./LegChips";
@@ -13,7 +13,6 @@ import { hhmm, isTransit, liveStatus, mins, modeColor, modeLabel, type JourneyLe
 import { usePlanStore } from "./planStore";
 import { decodePolyline } from "./polyline";
 
-const LIVE_ROUTES: readonly string[] = CONFIG.routes;
 const placeName = (n: string, fallback: string) => (!n || n === "END" || n === "START" ? fallback : n);
 const ntaTrip = (l: JourneyLeg) => l.tripId?.match(/(\d+_\d+)$/)?.[1];
 
@@ -30,7 +29,7 @@ export function JourneyS17() {
   const { idx } = useParams();
   const navigate = useNavigate();
   const it = usePlanStore((s) => s.itineraries?.[Number(idx)]);
-  const rt = useRealtime();
+  const routeIndex = useRouteIndex();
 
   const legs = useMemo(
     () => (it?.legs ?? []).map((l) => ({ leg: l, path: decodePolyline(l.geometry.points, l.geometry.precision) })),
@@ -41,10 +40,11 @@ export function JourneyS17() {
     return pts.length ? pts : null;
   }, [legs]);
 
-  const liveRoutes = useMemo(
-    () => new Set(legs.filter((l) => isTransit(l.leg) && l.leg.route && LIVE_ROUTES.includes(l.leg.route)).map((l) => l.leg.route!)),
-    [legs],
-  );
+  const liveRoutes = useMemo(() => {
+    const known = new Set(routeIndex?.map((r) => r.route));
+    return new Set(legs.filter((l) => isTransit(l.leg) && l.leg.route && known.has(l.leg.route)).map((l) => l.leg.route!));
+  }, [legs, routeIndex]);
+  const rt = useRealtime([...liveRoutes]);
   const myTrips = useMemo(() => new Set(legs.map((l) => ntaTrip(l.leg)).filter(Boolean)), [legs]);
   const vehicles = useMemo(() => rt.data?.vehicles.filter((v) => liveRoutes.has(v.route)) ?? [], [rt.data, liveRoutes]);
   const myBuses = vehicles.filter((v) => myTrips.has(v.tripId));
@@ -188,7 +188,7 @@ export function JourneyS17() {
             })}
           </ol>
           <p className="mt-4 text-[11px] text-ink-muted">
-            Times: Transitous with TFI real-time where available. Live positions: NTA, routes {CONFIG.routes.join(", ")}.
+            Times: Transitous with TFI real-time where available. Live positions: NTA, Dublin Bus and Go-Ahead Ireland routes.
           </p>
         </div>
       </div>

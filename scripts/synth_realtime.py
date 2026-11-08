@@ -6,7 +6,7 @@ between its previous and next stop by schedule time, plus a small random delay.
 Output: public/recorded/snap-000.json ... (same shape as RealtimeRes, source "RECORDED"),
         public/recorded/index.json (list of snapshot files).
 
-Usage: python3 scripts/synth_realtime.py [--start 08:30] [--count 30] [--interval 20] [--seed 7]
+Usage: python3 scripts/synth_realtime.py [--start 08:30] [--count 30] [--interval 20] [--seed 7] [--routes E1,39A,16]
 """
 import argparse
 import datetime as dt
@@ -45,10 +45,11 @@ def main():
     ap.add_argument("--count", type=int, default=30)
     ap.add_argument("--interval", type=int, default=20)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--routes", default="E1,39A,16", help="routes to include in the RECORDED snapshots")
     args = ap.parse_args()
     rnd = random.Random(args.seed)
 
-    routes = [json.load(open(p)) for p in sorted(glob.glob(os.path.join(ROOT, "gtfs", "*.json"))) if not p.endswith("routes.json")]
+    routes = [json.load(open(os.path.join(ROOT, "gtfs", f"{r}.json"))) for r in args.routes.split(",")]
     if not routes:
         raise SystemExit("Run scripts/extract_gtfs.py first")
     dates = {r["serviceDate"] for r in routes}

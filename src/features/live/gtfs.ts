@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { RouteData } from "./types";
+import type { RouteData, RouteSummary } from "./types";
 
 const cache = new Map<string, Promise<RouteData>>();
 
@@ -31,4 +31,31 @@ export function useRouteData(route: string): RouteState {
     };
   }, [route]);
   return state.route === route ? state.s : { status: "loading" };
+}
+
+let indexPromise: Promise<RouteSummary[]> | null = null;
+
+/** Every route the app has data for (Dublin Bus and Go-Ahead Dublin), for search and validation. */
+export function loadRouteIndex(): Promise<RouteSummary[]> {
+  indexPromise ??= fetch("/gtfs/index.json").then((r) => {
+    if (!r.ok) throw new Error(`gtfs index ${r.status}`);
+    return r.json() as Promise<RouteSummary[]>;
+  });
+  indexPromise.catch(() => (indexPromise = null));
+  return indexPromise;
+}
+
+export function useRouteIndex(): RouteSummary[] | null {
+  const [index, setIndex] = useState<RouteSummary[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadRouteIndex().then(
+      (i) => alive && setIndex(i),
+      () => alive && setIndex([]),
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return index;
 }

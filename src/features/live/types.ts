@@ -25,4 +25,12 @@ export type Direction = {
   stops: Stop[];
   timetable: Trip[];
 };
-export type RouteData = { route: string; routeId: string; longName: string; serviceDate: string; directions: Direction[] };
+export type RouteData = {
+  route: string;
+  routeId: string;
+  longName: string;
+  operator: string;
+  serviceDate: string;
+  directions: Direction[];
+};
+export type RouteSummary = { route: string; longName: string; operator: string };
