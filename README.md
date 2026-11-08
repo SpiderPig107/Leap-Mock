@@ -4,7 +4,7 @@
 
 > Concept prototype — not affiliated with TFI/NTA. No real money moves. No physical Leap card is read or changed. All card numbers are fake.
 
-Built together by **Gamaliel** and **Sona** at the **Cognition Builder's Day**, hosted by **Give(a)Go** in Dublin, with Devin as our AI engineer.
+Built together by **Gamaliel** and **Sona** at the **Cognition Builder's Day**, hosted by **Give(a)Go** in Dublin, with Devin AI.
 
 ## Demo video
 
