@@ -8,8 +8,7 @@ Built together by **Gamaliel** and **Sona** at the **Cognition Builder's Day**, 
 
 ## Demo video
 
-<!-- Drag the demo .mp4 into this README in the GitHub web editor (under 100 MB) to embed a player here, or replace this line with a YouTube thumbnail link. -->
-_Coming soon._
+https://github.com/user-attachments/assets/beeee950-334f-4245-a74c-10d100273850
 
 ## The problem
 
