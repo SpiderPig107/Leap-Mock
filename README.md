@@ -10,6 +10,16 @@ Built together by **Gamaliel** and **Sona** at the **Cognition Builder's Day**, 
 
 https://github.com/user-attachments/assets/17837bdf-a65e-4dcc-97da-fd76e5c8cae5
 
+## Docs
+
+| Doc | File |
+|---|---|
+| PRD | [docs/01-PRD.md](docs/01-PRD.md) |
+| Process Flow | [docs/02-Process-Flow.md](docs/02-Process-Flow.md) |
+| Tech Spec | [docs/03-Tech-Spec.md](docs/03-Tech-Spec.md) |
+| Security Review | [docs/04-Security-Review.md](docs/04-Security-Review.md) |
+| Implementation Plan | [docs/05-Implementation-Plan.md](docs/05-Implementation-Plan.md) |
+
 ## The problem
 
 Dublin commuters have two problems:
@@ -88,16 +98,6 @@ Without these values, the app still runs with recorded bus data. Card features n
 Checks: `npm test` (Vitest), `npm run lint`, `npm run build` (type check + build).
 
 **Reset the demo balances:** open the Sheet → **Extensions → Apps Script** → select `setup` → **Run**.
-
-## Docs
-
-| Doc | File |
-|---|---|
-| PRD | [docs/01-PRD.md](docs/01-PRD.md) |
-| Process Flow | [docs/02-Process-Flow.md](docs/02-Process-Flow.md) |
-| Tech Spec | [docs/03-Tech-Spec.md](docs/03-Tech-Spec.md) |
-| Security Review | [docs/04-Security-Review.md](docs/04-Security-Review.md) |
-| Implementation Plan | [docs/05-Implementation-Plan.md](docs/05-Implementation-Plan.md) |
 
 ## Credits and data
 
