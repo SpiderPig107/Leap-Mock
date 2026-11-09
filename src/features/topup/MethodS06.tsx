@@ -6,6 +6,7 @@ import { Screen } from "../../ui/Screen";
 import { useCardStore } from "../card/cardStore";
 import { ApplePaySimS09 } from "./ApplePaySimS09";
 import { GooglePayButton } from "./GooglePayButton";
+import { InAppBrowserBanner } from "./InAppBrowserBanner";
 import type { TopUpMethod } from "./topupApi";
 import { useTopUpStore } from "./topupStore";
 
@@ -25,6 +26,7 @@ export function MethodS06() {
     <Screen back="/topup" title="Pay with">
       <p className="text-sm text-ink-muted">Top-up {formatCents(amountCents)}</p>
       <div className="mt-4 space-y-3">
+        <InAppBrowserBanner />
         <GooglePayButton amountCents={amountCents} onPaid={() => pay("GOOGLE_PAY")} onCancel={() => {}} />
         <p className="-mt-1 text-center text-[11px] text-ink-muted">Google Pay TEST mode · no real charge</p>
         <button
