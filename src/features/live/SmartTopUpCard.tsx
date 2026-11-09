@@ -7,6 +7,7 @@ import { Button, Spinner } from "../../ui/Button";
 import { useCardStore } from "../card/cardStore";
 import { ApplePaySimS09 } from "../topup/ApplePaySimS09";
 import { GooglePayButton } from "../topup/GooglePayButton";
+import { InAppBrowserBanner } from "../topup/InAppBrowserBanner";
 import { isRejection, topUp, type TopUpMethod } from "../topup/topupApi";
 import { shouldShowSmartTopUp, tripsLeft, type SmartState } from "./smartTopUp";
 
@@ -51,7 +52,8 @@ export function SmartTopUpCard() {
           <p className="mt-1 text-xs text-ink-muted">
             {formatCents(card.balanceCents)} covers {tripsLeft(card.balanceCents)} {tripsLeft(card.balanceCents) === 1 ? "trip" : "trips"}.
           </p>
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
+            <InAppBrowserBanner />
             <GooglePayButton amountCents={AMOUNT} onPaid={() => paid("GOOGLE_PAY")} onCancel={() => setState("idle")} />
           </div>
           <button type="button" onClick={() => setApplePay(true)} className="mt-2 w-full py-2 text-center text-xs font-semibold text-brand-dark">
